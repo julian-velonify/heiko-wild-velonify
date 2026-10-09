@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Produkt – Heiko Wild</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<main class="wrap" id="main"></main>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+const { CATS, products, img, eur } = HW, I = APP.I;
+const p = HW.byId(new URLSearchParams(location.search).get('id')) || HW.byId(2820);
+APP.mount(p.cat);
+document.title = p.title + ' – Heiko Wild';
+const rel = products.filter(x => x.cat === p.cat && x.id !== p.id).sort((a, b) => (a.out - b.out) || Math.abs(a.price - p.price) - Math.abs(b.price - p.price)).slice(0, 4);
+const mail = `mailto:order@wild-online.com?subject=${encodeURIComponent('Anfrage: ' + p.title)}`;
+document.getElementById('main').innerHTML = `
+<nav class="crumbs" aria-label="Brotkrumen"><a href="index.html">Startseite</a><span>/</span><a href="kollektion.html?cat=${p.cat}">${CATS[p.cat]}</a><span>/</span>${p.type}</nav>
+<div class="pdp">
+  <div class="gal"><div class="zoom" id="zoom"><img src="${img(p)}" alt="${p.title}" width="800" height="800"></div>
+    <div class="cap"><span>Zum Vergrößern mit der Maus über das Bild fahren</span><span>Art.-Nr. ${p.id}</span></div></div>
+  <div class="buy">
+    <a class="ty" href="kollektion.html?cat=${p.cat}">${p.type}</a>
+    <h1>${p.title}</h1>
+    <a class="trust" href="https://www.trustedshops.de/bewertung/info_X818C99E95631150930B21C541E199372.html" target="_blank" rel="noopener"><span class="stars" aria-hidden="true">★★★★★</span> 4,87 / 5 · 3.447 Bewertungen bei Trusted Shops</a>
+    <p class="blurb">${p.blurb || 'Hochwertiges Edelstahlinstrument von Heiko Wild, handgeschliffen in Tuttlingen.'}</p>
+    <div class="price-box"><b>${eur(p.price)}</b><small>pro Stück · inkl. MwSt. zzgl. Versandkosten</small></div>
+    <div class="avail ${p.out ? 'no' : ''}"><i></i>${p.out ? 'Aktuell nicht vorrätig' : 'Lieferbar'}</div>
+    ${p.out ? `<a class="btn block" style="min-height:56px" href="${mail}">Verfügbarkeit anfragen</a>` : `
+    <div class="buyrow"><div class="qty"><button id="qm" aria-label="Weniger">−</button><input id="qn" type="number" value="1" min="1" max="99" aria-label="Menge"><button id="qp" aria-label="Mehr">+</button></div>
+    <button class="btn" id="addBtn">In den Warenkorb</button></div>`}
+    <div class="help">
+      <div>${I('phone')}<p><b>Fragen zum Artikel?</b>Ruf uns an: <a href="tel:+497461966300">07461 966 300</a> (Mo–Do 8:15–15:45, Fr 8:15–11:45) oder schreib per <a href="https://wa.me/491773266233">WhatsApp</a>.</p></div>
+      <div>${I('box')}<p><b>Lieferung &amp; Zahlung</b>Informationen zu Versand und Zahlarten findest du <a href="#">hier</a>.</p></div>
+      <div>${I('doc')}<p><b>Unterlagen</b>PDF-Katalog und Zertifikate auf Anfrage über <a href="mailto:order@wild-online.com">order@wild-online.com</a>.</p></div>
+    </div>
+    ${p.specs.length ? `<div class="spec"><h2>Eigenschaften</h2><ul>${p.specs.map(s => `<li>${I('check')}<span>${s}</span></li>`).join('')}</ul>
+      <p class="more">Art.-Nr. ${p.id} · <a href="https://heikowild.de/de/${p.path}" target="_blank" rel="noopener">Vollständige Beschreibung bei heikowild.de</a></p></div>` : `<div class="spec"><p class="more">Art.-Nr. ${p.id} · <a href="https://heikowild.de/de/${p.path}" target="_blank" rel="noopener">Vollständige Beschreibung bei heikowild.de</a></p></div>`}
+  </div>
+</div>
+<section style="padding-bottom:72px"><div class="sh"><h2>Passend dazu</h2><a class="link" href="kollektion.html?cat=${p.cat}">Alle in ${CATS[p.cat]}</a></div><div class="pg">${rel.map((x, i) => APP.card(x, i)).join('')}</div></section>
+<div class="stickybuy" id="sticky"><b>${eur(p.price)}</b>${p.out ? `<a class="btn" href="${mail}">Anfragen</a>` : `<button class="btn" data-add="${p.id}">In den Warenkorb</button>`}</div>`;
+window.reveal();
+
+const z = document.getElementById('zoom'), zi = z.querySelector('img');
+z.addEventListener('mousemove', e => { const r = z.getBoundingClientRect(); z.classList.add('on'); zi.style.transformOrigin = `${(e.clientX - r.left) / r.width * 100}% ${(e.clientY - r.top) / r.height * 100}%`; });
+z.addEventListener('mouseleave', () => z.classList.remove('on'));
+const qn = document.getElementById('qn');
+if (qn) {
+  const clamp = () => qn.value = Math.min(99, Math.max(1, +qn.value || 1));
+  document.getElementById('qm').onclick = () => { qn.value = +qn.value - 1; clamp(); };
+  document.getElementById('qp').onclick = () => { qn.value = +qn.value + 1; clamp(); };
+  qn.onchange = clamp;
+  document.getElementById('addBtn').onclick = () => APP.add(p.id, +qn.value);
+}
+const buy = document.querySelector('.buyrow') || document.querySelector('.buy .btn');
+new IntersectionObserver(([e]) => document.getElementById('sticky').classList.toggle('on', !e.isIntersecting && e.boundingClientRect.top < 0)).observe(buy);
+</script>
+</body>
+</html>

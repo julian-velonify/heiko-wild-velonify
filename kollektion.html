@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Produkte – Heiko Wild</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<main class="wrap" id="main">
+  <nav class="crumbs" aria-label="Brotkrumen"><a href="index.html">Startseite</a><span>/</span><a href="kollektion.html">Produkte</a><span id="crumbCat"></span></nav>
+  <div class="pagehead"><h1 id="title" style="font-size:clamp(2rem,4vw,3rem)">Alle Produkte</h1><p id="intro">Filtere nach Anwendung, Typ und Preis.</p></div>
+  <div class="col-layout">
+    <aside class="filters" id="filters" aria-label="Filter">
+      <div class="fdrawer-h"><h2>Filter</h2><button class="tool" id="closeF" aria-label="Filter schließen"><svg class="ico"><use href="#i-x"/></svg></button></div>
+      <div class="fbody" id="fbody"></div>
+      <div class="fdrawer-f"><button class="btn block" id="applyF"></button></div>
+    </aside>
+    <section aria-live="polite">
+      <div class="toolbar">
+        <span class="cnt" id="cnt2"></span>
+        <div style="display:flex;gap:10px">
+          <button class="btn line fbtn" id="openF"><svg class="ico"><use href="#i-filter"/></svg>Filter</button>
+          <label class="sr" for="sort">Sortierung</label>
+          <select id="sort"><option value="rel">Beliebtheit</option><option value="pa">Preis aufsteigend</option><option value="pd">Preis absteigend</option><option value="az">Name A–Z</option></select>
+        </div>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="pg three" id="grid"></div>
+    </section>
+  </div>
+</main>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+const { CATS, products } = HW, $ = APP.$;
+const catOrder = ['mani','kosm','pinz','sch','vet','dent','skal'];
+const qs = new URLSearchParams(location.search);
+const S = { cats: new Set(qs.get('cat') ? qs.get('cat').split(',') : []), types: new Set(), min: '', max: '', stock: false, q: (qs.get('q') || '').toLowerCase(), sort: 'rel' };
+APP.mount(S.cats.size === 1 ? [...S.cats][0] : 'all');
+if ($('#hq')) $('#hq').value = qs.get('q') || '';
+
+const match = (p, skip) => (skip === 'cat' || !S.cats.size || S.cats.has(p.cat))
+  && (skip === 'type' || !S.types.size || S.types.has(p.type))
+  && (S.min === '' || p.price >= +S.min) && (S.max === '' || p.price <= +S.max)
+  && (!S.stock || !p.out) && (!S.q || (p.title + ' ' + p.type + ' ' + p.id).toLowerCase().includes(S.q));
+const list = () => products.filter(p => match(p)).sort((a, b) =>
+  S.sort === 'pa' ? a.price - b.price : S.sort === 'pd' ? b.price - a.price : S.sort === 'az' ? a.title.localeCompare(b.title, 'de')
+  : ((a.hit < 0 ? 99 : a.hit) - (b.hit < 0 ? 99 : b.hit)) || a.title.localeCompare(b.title, 'de'));
+
+function filtersHTML() {
+  const catRows = catOrder.map(c => ({ c, n: products.filter(p => p.cat === c && match(p, 'cat')).length }));
+  const typeSrc = products.filter(p => (!S.cats.size || S.cats.has(p.cat)));
+  const types = [...new Set(typeSrc.map(p => p.type))].sort((a, b) => a.localeCompare(b, 'de'));
+  return `<div class="fg"><h3>Anwendung</h3>${catRows.map(r => `<label><input type="checkbox" data-cat="${r.c}" ${S.cats.has(r.c) ? 'checked' : ''}>${CATS[r.c]}<span class="n">${r.n}</span></label>`).join('')}</div>
+  <div class="fg"><h3>Typ</h3>${types.map(t => `<label><input type="checkbox" data-type="${t}" ${S.types.has(t) ? 'checked' : ''}>${t}<span class="n">${products.filter(p => p.type === t && match(p, 'type')).length}</span></label>`).join('')}</div>
+  <div class="fg"><h3>Preis (€)</h3><div class="price-in"><input type="number" min="0" inputmode="decimal" placeholder="von" aria-label="Preis von" id="pmin" value="${S.min}"><span>–</span><input type="number" min="0" inputmode="decimal" placeholder="bis" aria-label="Preis bis" id="pmax" value="${S.max}"></div></div>
+  <div class="fg"><h3>Verfügbarkeit</h3><label><input type="checkbox" id="stock" ${S.stock ? 'checked' : ''}>Nur lieferbare Artikel</label></div>`;
+}
+function chipsHTML() {
+  const c = [];
+  S.cats.forEach(k => c.push(['cat', k, CATS[k]])); S.types.forEach(k => c.push(['type', k, k]));
+  if (S.min !== '' || S.max !== '') c.push(['price', '', `${S.min || 0} – ${S.max || '∞'} €`]);
+  if (S.stock) c.push(['stock', '', 'Lieferbar']); if (S.q) c.push(['q', '', `„${S.q}“`]);
+  return c.length ? c.map(x => `<span class="chip">${x[2]}<button data-rm="${x[0]}" data-v="${x[1]}" aria-label="Filter ${x[2]} entfernen"><svg class="ico" style="width:14px;height:14px"><use href="#i-x"/></svg></button></span>`).join('') + `<button class="chip clear" id="clr">Alle zurücksetzen</button>` : '';
+}
+function render() {
+  const l = list();
+  $('#fbody').innerHTML = filtersHTML(); $('#chips').innerHTML = chipsHTML();
+  $('#cnt2').textContent = l.length + (l.length === 1 ? ' Artikel' : ' Artikel');
+  $('#applyF').textContent = l.length + ' Artikel anzeigen';
+  const one = S.cats.size === 1 ? [...S.cats][0] : null;
+  $('#title').textContent = one ? CATS[one] : 'Alle Produkte';
+  $('#crumbCat').innerHTML = one ? `<span>/</span>${CATS[one]}` : '';
+  document.title = (one ? CATS[one] : 'Produkte') + ' – Heiko Wild';
+  $('#grid').innerHTML = l.length ? l.map((p, i) => APP.card(p, i)).join('') :
+    `<div class="empty" style="grid-column:1/-1"><h3>Keine passenden Artikel</h3><p>${S.cats.has('skal') && S.cats.size === 1 ? 'In diesem Entwurf sind noch keine Skalpell-Klingen importiert.' : 'Lockere die Filter oder setze sie zurück.'}</p><button class="btn" id="clr2">Filter zurücksetzen</button></div>`;
+  window.reveal();
+  const u = new URLSearchParams(); if (S.cats.size) u.set('cat', [...S.cats].join(',')); if (S.q) u.set('q', S.q);
+  history.replaceState(null, '', u.toString() ? '?' + u : location.pathname);
+}
+const reset = () => { S.cats.clear(); S.types.clear(); S.min = S.max = ''; S.stock = false; S.q = ''; if ($('#hq')) $('#hq').value = ''; render(); };
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.cat) { t.checked ? S.cats.add(t.dataset.cat) : S.cats.delete(t.dataset.cat); S.types.clear(); }
+  else if (t.dataset.type) { t.checked ? S.types.add(t.dataset.type) : S.types.delete(t.dataset.type); }
+  else if (t.id === 'stock') S.stock = t.checked;
+  else if (t.id === 'pmin') S.min = t.value; else if (t.id === 'pmax') S.max = t.value;
+  else if (t.id === 'sort') S.sort = t.value; else return;
+  render();
+});
+document.addEventListener('click', e => {
+  const r = e.target.closest('[data-rm]');
+  if (r) { const k = r.dataset.rm, v = r.dataset.v; if (k === 'cat') { S.cats.delete(v); S.types.clear(); } else if (k === 'type') S.types.delete(v); else if (k === 'price') S.min = S.max = ''; else if (k === 'stock') S.stock = false; else if (k === 'q') { S.q = ''; if ($('#hq')) $('#hq').value = ''; } render(); }
+  if (e.target.closest('#clr,#clr2')) reset();
+});
+const f = $('#filters');
+window.closeFilters = () => { f.classList.remove('on'); $('#scrim').classList.remove('on'); };
+$('#openF').onclick = () => { f.classList.add('on'); $('#scrim').classList.add('on'); };
+$('#closeF').onclick = $('#applyF').onclick = window.closeFilters;
+$('#scrim').addEventListener('click', window.closeFilters);
+render();
+</script>
+</body>
+</html>
