@@ -42,9 +42,7 @@
   }
 
   function footer() {
-    return `<section class="wrap" style="padding-top:clamp(40px,6vw,72px);padding-bottom:clamp(40px,6vw,72px)"><h2 style="margin-bottom:20px">So bestellst du</h2>
-      <ol class="steps"><li><b>1. Instrument wählen</b><span>Nach Anwendung filtern oder direkt nach Name suchen.</span></li><li><b>2. In den Warenkorb</b><span>Menge festlegen, weiter einkaufen oder zur Kasse.</span></li><li><b>3. Bezahlen</b><span>Adresse eintragen, Zahlart wählen, bestellen. Fragen? Wir sind telefonisch erreichbar.</span></li></ol></section>
-    <footer class="site"><div class="wrap">
+    return `<footer class="site"><div class="wrap">
       <div class="cols">
         <div class="brandcol"><img src="${LOGO}" alt="Heiko Wild GmbH"><p>Qualitätsprodukte aus Edelstahl. Instrumente, produziert und vertrieben von der Heiko Wild GmbH in Tuttlingen.</p></div>
         <div><h4>Einkaufen</h4><ul><li><a href="kollektion.html">Alle Produkte</a></li>${navOrder.map(c => `<li><a href="kollektion.html?cat=${c}">${CATS[c]}</a></li>`).join('')}</ul></div>
